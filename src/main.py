@@ -1,6 +1,6 @@
 """
 Эмулятор командной оболочки (REPL) для Варианта №16.
-Этап 2: конфигурация — параметры командной строки и стартовый скрипт.
+Этап 3: подключение виртуальной файловой системы (VFS).
 """
 
 import argparse
@@ -9,29 +9,22 @@ import os
 import socket
 import sys
 
+from vfs import VFS
+
 
 def get_prompt():
-    """
-    Формирует приглашение к вводу на основе реальных данных ОС.
-    Пример: username@hostname:~$
-    """
+    """Формирует приглашение на основе данных ОС."""
     user = getpass.getuser()
     host = socket.gethostname()
     cwd = os.getcwd()
     home = os.path.expanduser("~")
-
     if cwd.startswith(home):
         cwd = "~" + cwd[len(home):]
-
     return f"{user}@{host}:{cwd}$ "
 
 
 def parse_input(user_input):
-    """
-    Разбирает строку ввода на команду и аргументы.
-    Раскрывает переменные окружения (например, $HOME).
-    Возвращает кортеж (команда, список аргументов).
-    """
+    """Разбирает ввод на команду и аргументы."""
     expanded = os.path.expandvars(user_input)
     parts = expanded.split()
     if not parts:
@@ -39,11 +32,8 @@ def parse_input(user_input):
     return parts[0], parts[1:]
 
 
-def execute_command(command, args):
-    """
-    Выполняет команду или выводит сообщение об ошибке.
-    Возвращает True, если команда выполнена успешно, иначе False.
-    """
+def execute_command(command, args, vfs):
+    """Выполняет команду. Возвращает True при успехе."""
     if command == "exit":
         print("Выход из эмулятора...")
         return True
@@ -51,17 +41,19 @@ def execute_command(command, args):
         args_str = " ".join(args)
         print(f"{command}: {args_str}")
         return True
+    elif command == "vfs-info":
+        if vfs and vfs.source:
+            print(vfs.info())
+        else:
+            print("VFS не загружена")
+        return True
     else:
         print(f"{command}: команда не найдена")
         return False
 
 
-def run_startup_script(script_path):
-    """
-    Выполняет команды из стартового скрипта.
-    Останавливается при первой ошибке.
-    Отображает ввод и вывод, имитируя диалог.
-    """
+def run_startup_script(script_path, vfs):
+    """Выполняет команды из скрипта, стоп при ошибке."""
     if not os.path.exists(script_path):
         print(f"Ошибка: файл {script_path} не найден")
         return
@@ -71,22 +63,17 @@ def run_startup_script(script_path):
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-
             print(f"{get_prompt()}{line}")
-
             command, args = parse_input(line)
             if command:
-                success = execute_command(command, args)
-                if not success:
+                ok = execute_command(command, args, vfs)
+                if not ok:
                     print("Скрипт остановлен из-за ошибки.")
                     sys.exit(1)
 
 
 def parse_args():
-    """
-    Разбирает аргументы командной строки.
-    Возвращает объект с полями vfs и script.
-    """
+    """Разбирает аргументы командной строки."""
     parser = argparse.ArgumentParser(
         description="Эмулятор командной оболочки"
     )
@@ -104,27 +91,30 @@ def parse_args():
 
 
 def main():
-    """
-    Главный цикл REPL или выполнение стартового скрипта.
-    """
+    """Главный цикл REPL или выполнение скрипта."""
     args = parse_args()
 
-    print("=== Параметры запуска ===")
+    print("Параметры запуска")
     print(f"VFS: {args.vfs}")
     print(f"Стартовый скрипт: {args.script}")
-    print("=========================")
+
+    vfs = VFS()
+    if args.vfs:
+        if not vfs.load_zip(args.vfs):
+            sys.exit(1)
+        print(vfs.info())
 
     if args.script:
-        run_startup_script(args.script)
+        run_startup_script(args.script, vfs)
         return
 
-    print("Эмулятор оболочки запущен. Введите 'exit' для выхода.")
+    print("Эмулятор оболочки запущен. Введите 'exit'.")
     while True:
         try:
             user_input = input(get_prompt())
             command, args_list = parse_input(user_input)
             if command:
-                execute_command(command, args_list)
+                execute_command(command, args_list, vfs)
                 if command == "exit":
                     sys.exit(0)
         except KeyboardInterrupt:

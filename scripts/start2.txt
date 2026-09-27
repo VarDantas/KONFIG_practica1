@@ -1,0 +1,6 @@
+# Тест VFS
+vfs-info
+ls /home
+cd /home/user
+ls -la
+exit
