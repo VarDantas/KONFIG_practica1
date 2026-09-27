@@ -1,8 +1,9 @@
 """
 Эмулятор командной оболочки (REPL) для Варианта №16.
-Этап 1: минимальный прототип с заглушками ls, cd и обработкой ошибок.
+Этап 2: конфигурация — параметры командной строки и стартовый скрипт.
 """
 
+import argparse
 import getpass
 import os
 import socket
@@ -41,29 +42,91 @@ def parse_input(user_input):
 def execute_command(command, args):
     """
     Выполняет команду или выводит сообщение об ошибке.
-    Команды ls и cd — заглушки, выводят своё имя и аргументы.
+    Возвращает True, если команда выполнена успешно, иначе False.
     """
     if command == "exit":
         print("Выход из эмулятора...")
-        sys.exit(0)
+        return True
     elif command in ("ls", "cd"):
         args_str = " ".join(args)
         print(f"{command}: {args_str}")
+        return True
     else:
         print(f"{command}: команда не найдена")
+        return False
+
+
+def run_startup_script(script_path):
+    """
+    Выполняет команды из стартового скрипта.
+    Останавливается при первой ошибке.
+    Отображает ввод и вывод, имитируя диалог.
+    """
+    if not os.path.exists(script_path):
+        print(f"Ошибка: файл {script_path} не найден")
+        return
+
+    with open(script_path, "r", encoding="utf-8") as file:
+        for line in file:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            print(f"{get_prompt()}{line}")
+
+            command, args = parse_input(line)
+            if command:
+                success = execute_command(command, args)
+                if not success:
+                    print("Скрипт остановлен из-за ошибки.")
+                    sys.exit(1)
+
+
+def parse_args():
+    """
+    Разбирает аргументы командной строки.
+    Возвращает объект с полями vfs и script.
+    """
+    parser = argparse.ArgumentParser(
+        description="Эмулятор командной оболочки"
+    )
+    parser.add_argument(
+        "--vfs",
+        help="Путь к физическому расположению VFS",
+        default=None
+    )
+    parser.add_argument(
+        "--script",
+        help="Путь к стартовому скрипту",
+        default=None
+    )
+    return parser.parse_args()
 
 
 def main():
     """
-    Главный цикл REPL.
+    Главный цикл REPL или выполнение стартового скрипта.
     """
+    args = parse_args()
+
+    print("=== Параметры запуска ===")
+    print(f"VFS: {args.vfs}")
+    print(f"Стартовый скрипт: {args.script}")
+    print("=========================")
+
+    if args.script:
+        run_startup_script(args.script)
+        return
+
     print("Эмулятор оболочки запущен. Введите 'exit' для выхода.")
     while True:
         try:
             user_input = input(get_prompt())
-            command, args = parse_input(user_input)
+            command, args_list = parse_input(user_input)
             if command:
-                execute_command(command, args)
+                execute_command(command, args_list)
+                if command == "exit":
+                    sys.exit(0)
         except KeyboardInterrupt:
             print("\nВыход...")
             sys.exit(0)
