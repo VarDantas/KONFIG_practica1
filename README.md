@@ -4,32 +4,52 @@
 Эмулятор командной оболочки UNIX-подобной ОС. Реализован на Python.
 Этап 1: минимальный прототип REPL.
 Этап 2: конфигурация — поддержка параметров командной строки и стартовых скриптов.
+Этап 3: виртуальная файловая система (VFS), загружаемая из ZIP-архива в память.
 
 Функции и настройки
-get_prompt() — формирует приглашение вида username@hostname:~$.
+get_prompt(vfs, cwd) — формирует приглашение вида username@hostname:cwd$.
 parse_input(user_input) — разбирает ввод на команду и аргументы, раскрывает переменные окружения ($HOME).
-execute_command(command, args) — выполняет команду, возвращает True при успехе и False при ошибке.
-run_startup_script(script_path) — выполняет команды из стартового скрипта, останавливается при первой ошибке.
+execute_command(command, args, vfs, cwd) — выполняет команду.
+run_startup_script(script_path, vfs) — выполняет команды из стартового скрипта, останавливается при первой ошибке.
 parse_args() — разбирает аргументы командной строки.
 main() — главный цикл REPL или выполнение стартового скрипта.
 
+Класс VFS (в src/vfs.py):
+load_zip(zip_path) — загружает VFS из ZIP-архива в память (без распаковки на диск).
+exists(path) — проверяет существование пути.
+is_dir(path) — проверяет, является ли путь папкой.
+list_dir(path) — возвращает список содержимого папки.
+get_size(path) — возвращает размер файла или папки.
+info() — краткая информация о VFS.
+
 Параметры командной строки:
---vfs   — путь к физическому расположению VFS.
+--vfs    — путь к ZIP-архиву с VFS.
 --script — путь к стартовому скрипту.
+
+Команды эмулятора
+exit     — завершение работы.
+vfs-info — информация о загруженной VFS.
+ls       — вывод содержимого директории (заглушка на Этапе 2).
+cd       — смена директории (заглушка на Этапе 2).
 
 Команды для сборки и запуска
 Запуск в интерактивном режиме:
 ./run.sh
 
 Запуск с параметрами:
-python3 src/main.py --vfs /tmp/vfs --script scripts/start1.txt
+python3 src/main.py --vfs test_vfs/vfs_deep.zip --script scripts/start2.txt
+
+Генерация тестовых VFS:
+python3 tests/create_test_vfs.py
 
 Тестовые скрипты:
 ./run_test1.sh — тест с параметром --vfs
 ./run_test2.sh — тест с --vfs и --script
 ./run_test3.sh — тест только с --script
+./run_test4.sh — тест с VFS и стартовым скриптом
 
 Примеры использования
+Интерактивный режим:
 user@host:~$ ls -la
 ls: -la
 user@host:~$ cd $HOME
@@ -39,15 +59,23 @@ unknown: команда не найдена
 user@host:~$ exit
 Выход из эмулятора...
 
-При запуске со стартовым скриптом:
-Параметры запуска
-VFS: /tmp/vfs2
-Стартовый скрипт: scripts/start1.txt
-user@host:~$ ls -la
-ls: -la
-user@host:~$ unknown_command
-unknown_command: команда не найдена
-Скрипт остановлен из-за ошибки.
+Запуск со стартовым скриптом и VFS:
+=== Параметры запуска ===
+VFS: test_vfs/vfs_deep.zip
+Стартовый скрипт: scripts/start2.txt
+=========================
+VFS: test_vfs/vfs_deep.zip, файлов: 4, папок: 6
+user@host:~$ vfs-info
+VFS: test_vfs/vfs_deep.zip, файлов: 4, папок: 6
 
-Тесты
-Пока отсутствуют (будут добавлены на следующих этапах).
+Обработка ошибок загрузки VFS:
+$ python3 src/main.py --vfs test_vfs/not_exist.zip
+Ошибка: файл test_vfs/not_exist.zip не найден
+
+$ python3 src/main.py --vfs README.md
+Ошибка: README.md не ZIP-архив
+
+Тестирование
+Для демонстрации работы используются скрипты run_test1.sh … run_test4.sh
+и стартовые скрипты в папке scripts/.
+Юнит-тесты будут добавлены позже.
