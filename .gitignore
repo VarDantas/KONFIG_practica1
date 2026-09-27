@@ -1,0 +1,17 @@
+# Служебные файлы Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+
+# Настройки редакторов
+.vscode/
+.idea/
+*.swp
+
+# Прочее
+.DS_Store
