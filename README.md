@@ -1,1 +1,1 @@
-# Emulator
+# KONFIG_practica1
