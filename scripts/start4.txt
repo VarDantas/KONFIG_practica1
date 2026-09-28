@@ -1,0 +1,9 @@
+# Тест rmdir
+vfs-info
+ls /home/user
+rmdir /home/user/empty
+ls /home/user
+rmdir /home/user/readme.txt
+rmdir /home/nonexistent
+rmdir /home/user/docs
+exit

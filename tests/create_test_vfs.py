@@ -29,11 +29,12 @@ def main():
         "config.ini": "[main]\nkey=value\n",
     })
 
-    # Глубокое дерево: 3+ уровня
+    # Глубокое дерево: 3+ уровня + пустая директория
     create_zip("test_vfs/vfs_deep.zip", {
         "home/user/readme.txt": "Домашняя папка\n",
         "home/user/docs/report.txt": "Отчёт\n",
         "home/user/docs/notes/todo.txt": "Список дел\n",
+        "home/user/empty/": "",
         "etc/config.txt": "Конфигурация\n",
     })
 
