@@ -1,6 +1,6 @@
 """
 Эмулятор командной оболочки (REPL) для Варианта №16.
-Этап 3: подключение виртуальной файловой системы (VFS).
+Этап 4: основные команды — ls, cd, echo, du.
 """
 
 import argparse
@@ -12,14 +12,10 @@ import sys
 from vfs import VFS
 
 
-def get_prompt():
-    """Формирует приглашение на основе данных ОС."""
+def get_prompt(vfs, cwd):
+    """Формирует приглашение с текущей директорией VFS."""
     user = getpass.getuser()
     host = socket.gethostname()
-    cwd = os.getcwd()
-    home = os.path.expanduser("~")
-    if cwd.startswith(home):
-        cwd = "~" + cwd[len(home):]
     return f"{user}@{host}:{cwd}$ "
 
 
@@ -32,15 +28,91 @@ def parse_input(user_input):
     return parts[0], parts[1:]
 
 
-def execute_command(command, args, vfs):
-    """Выполняет команду. Возвращает True при успехе."""
+def resolve_path(target, cwd):
+    """Преобразует относительный путь в абсолютный."""
+    if target.startswith("/"):
+        return target
+    if cwd == "/":
+        return "/" + target
+    return cwd + "/" + target
+
+
+def cmd_ls(args, vfs, cwd):
+    """Команда ls — выводит содержимое директории."""
+    target = args[0] if args else cwd
+    target = resolve_path(target, cwd)
+
+    if not vfs.exists(target):
+        print(f"ls: {target}: нет такого файла или папки")
+        return True
+
+    if not vfs.is_dir(target):
+        print(target)
+        return True
+
+    for name in vfs.list_dir(target):
+        print(name)
+    return True
+
+
+def cmd_cd(args, vfs, cwd):
+    """Команда cd — меняет текущую директорию."""
+    if not args:
+        return "/"
+
+    target = args[0]
+
+    if target == "..":
+        if cwd == "/":
+            return "/"
+        return os.path.dirname(cwd) or "/"
+
+    target = resolve_path(target, cwd)
+
+    if not vfs.exists(target):
+        print(f"cd: {target}: нет такой директории")
+        return cwd
+
+    if not vfs.is_dir(target):
+        print(f"cd: {target}: это не директория")
+        return cwd
+
+    return target
+
+
+def cmd_echo(args):
+    """Команда echo — печатает аргументы."""
+    print(" ".join(args))
+    return True
+
+
+def cmd_du(args, vfs, cwd):
+    """Команда du — выводит размер файла или папки."""
+    target = args[0] if args else cwd
+    target = resolve_path(target, cwd)
+
+    size = vfs.get_size(target)
+    if size < 0:
+        print(f"du: {target}: нет такого файла или папки")
+        return True
+
+    print(f"{size}\t{target}")
+    return True
+
+
+def execute_command(command, args, vfs, cwd):
+    """Выполняет команду. Возвращает True, False или новый cwd."""
     if command == "exit":
         print("Выход из эмулятора...")
-        return True
-    elif command in ("ls", "cd"):
-        args_str = " ".join(args)
-        print(f"{command}: {args_str}")
-        return True
+        sys.exit(0)
+    elif command == "ls":
+        return cmd_ls(args, vfs, cwd)
+    elif command == "cd":
+        return cmd_cd(args, vfs, cwd)
+    elif command == "echo":
+        return cmd_echo(args)
+    elif command == "du":
+        return cmd_du(args, vfs, cwd)
     elif command == "vfs-info":
         if vfs and vfs.source:
             print(vfs.info())
@@ -53,23 +125,29 @@ def execute_command(command, args, vfs):
 
 
 def run_startup_script(script_path, vfs):
-    """Выполняет команды из скрипта, стоп при ошибке."""
+    """Выполняет скрипт, останавливается при ошибке."""
     if not os.path.exists(script_path):
         print(f"Ошибка: файл {script_path} не найден")
         return
 
+    cwd = "/"
     with open(script_path, "r", encoding="utf-8") as file:
         for line in file:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            print(f"{get_prompt()}{line}")
+            print(f"{get_prompt(vfs, cwd)}{line}")
+
             command, args = parse_input(line)
-            if command:
-                ok = execute_command(command, args, vfs)
-                if not ok:
-                    print("Скрипт остановлен из-за ошибки.")
-                    sys.exit(1)
+            if not command:
+                continue
+
+            result = execute_command(command, args, vfs, cwd)
+            if isinstance(result, str):
+                cwd = result
+            elif result is False:
+                print("Скрипт остановлен из-за ошибки.")
+                sys.exit(1)
 
 
 def parse_args():
@@ -77,21 +155,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Эмулятор командной оболочки"
     )
-    parser.add_argument(
-        "--vfs",
-        help="Путь к физическому расположению VFS",
-        default=None
-    )
-    parser.add_argument(
-        "--script",
-        help="Путь к стартовому скрипту",
-        default=None
-    )
+    parser.add_argument("--vfs", default=None)
+    parser.add_argument("--script", default=None)
     return parser.parse_args()
 
 
 def main():
-    """Главный цикл REPL или выполнение скрипта."""
+    """Главный цикл REPL."""
     args = parse_args()
 
     print("Параметры запуска")
@@ -108,15 +178,16 @@ def main():
         run_startup_script(args.script, vfs)
         return
 
+    cwd = "/"
     print("Эмулятор оболочки запущен. Введите 'exit'.")
     while True:
         try:
-            user_input = input(get_prompt())
+            user_input = input(get_prompt(vfs, cwd))
             command, args_list = parse_input(user_input)
             if command:
-                execute_command(command, args_list, vfs)
-                if command == "exit":
-                    sys.exit(0)
+                result = execute_command(command, args_list, vfs, cwd)
+                if isinstance(result, str):
+                    cwd = result
         except KeyboardInterrupt:
             print("\nВыход...")
             sys.exit(0)

@@ -1,0 +1,12 @@
+# Тест основных команд
+vfs-info
+ls /
+ls /home
+cd /home/user
+ls
+echo Привет из эмулятора
+du /home/user/readme.txt
+du /home/user
+cd ..
+ls
+exit
