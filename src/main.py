@@ -1,6 +1,6 @@
 """
 Эмулятор командной оболочки (REPL) для Варианта №16.
-Этап 4: основные команды — ls, cd, echo, du.
+Этап 5: дополнительные команды — rmdir.
 """
 
 import argparse
@@ -100,6 +100,20 @@ def cmd_du(args, vfs, cwd):
     return True
 
 
+def cmd_rmdir(args, vfs, cwd):
+    """Команда rmdir — удаляет пустую директорию."""
+    if not args:
+        print("rmdir: не указан путь")
+        return True
+
+    target = resolve_path(args[0], cwd)
+    success, error = vfs.remove_dir(target)
+
+    if not success:
+        print(f"rmdir: {target}: {error}")
+    return True
+
+
 def execute_command(command, args, vfs, cwd):
     """Выполняет команду. Возвращает True, False или новый cwd."""
     if command == "exit":
@@ -113,6 +127,8 @@ def execute_command(command, args, vfs, cwd):
         return cmd_echo(args)
     elif command == "du":
         return cmd_du(args, vfs, cwd)
+    elif command == "rmdir":
+        return cmd_rmdir(args, vfs, cwd)
     elif command == "vfs-info":
         if vfs and vfs.source:
             print(vfs.info())

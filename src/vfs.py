@@ -38,6 +38,9 @@ class VFS:
             with zipfile.ZipFile(zip_path, "r") as archive:
                 for name in archive.namelist():
                     if name.endswith("/"):
+                        path = "/" + name[:-1]
+                        self.files[path] = None
+                        self._ensure_parents(path)
                         continue
                     path = "/" + name
                     self._ensure_parents(path)
@@ -126,3 +129,23 @@ class VFS:
             if content is not None:
                 total += len(content.encode("utf-8"))
         return total
+
+    def remove_dir(self, path):
+        """
+        Удаляет пустую директорию.
+        Возвращает (True, None) при успехе или (False, сообщение).
+        """
+        if path == "/":
+            return False, "нельзя удалить корневую директорию"
+
+        if path not in self.files:
+            return False, "нет такой директории"
+
+        if self.files[path] is not None:
+            return False, "не директория"
+
+        if self.list_dir(path):
+            return False, "директория не пуста"
+
+        del self.files[path]
+        return True, None
