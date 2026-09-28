@@ -73,3 +73,56 @@ class VFS:
         files = sum(1 for v in self.files.values() if v is not None)
         dirs = len(self.files) - files
         return f"VFS: {self.source}, файлов: {files}, папок: {dirs}"
+
+    def exists(self, path):
+        """Проверяет, существует ли путь."""
+        return path in self.files
+
+    def is_dir(self, path):
+        """Проверяет, является ли путь папкой."""
+        return path in self.files and self.files[path] is None
+
+    def list_dir(self, path):
+        """
+        Возвращает список имён файлов и папок внутри директории.
+        """
+        if path != "/" and path.endswith("/"):
+            path = path[:-1]
+
+        prefix = path if path == "/" else path + "/"
+        names = set()
+
+        for item in self.files:
+            if item == path:
+                continue
+            if not item.startswith(prefix):
+                continue
+            rest = item[len(prefix):]
+            if not rest:
+                continue
+            first = rest.split("/")[0]
+            names.add(first)
+
+        return sorted(names)
+
+    def get_size(self, path):
+        """
+        Возвращает размер файла или директории в байтах.
+        Для директории — сумма размеров всех файлов внутри.
+        """
+        if path not in self.files:
+            return -1
+
+        if self.files[path] is not None:
+            return len(self.files[path].encode("utf-8"))
+
+        prefix = path if path == "/" else path + "/"
+        total = 0
+        for item, content in self.files.items():
+            if item == path:
+                continue
+            if not item.startswith(prefix):
+                continue
+            if content is not None:
+                total += len(content.encode("utf-8"))
+        return total
