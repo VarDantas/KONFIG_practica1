@@ -17,19 +17,19 @@ def create_zip(path, files):
 
 def main():
     """Создаёт три тестовых VFS."""
-    # Минимальный: один файл
+    """ Минимальный: один файл """
     create_zip("test_vfs/vfs_minimal.zip", {
         "readme.txt": "Привет, мир!\n",
     })
 
-    # Несколько файлов
+    """ Несколько файлов """
     create_zip("test_vfs/vfs_several.zip", {
         "readme.txt": "Добро пожаловать\n",
         "notes.txt": "Заметки\n",
         "config.ini": "[main]\nkey=value\n",
     })
 
-    # Глубокое дерево: 3+ уровня + пустая директория
+    """ Глубокое дерево: 3+ уровня + пустая директория """
     create_zip("test_vfs/vfs_deep.zip", {
         "home/user/readme.txt": "Домашняя папка\n",
         "home/user/docs/report.txt": "Отчёт\n",
