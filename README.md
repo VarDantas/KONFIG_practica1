@@ -66,12 +66,12 @@ python3 tests/create_test_vfs.py
 
 Тестовые скрипты
 
-./run_test1.sh — тест с параметром --vfs
-./run_test2.sh — тест с --vfs и --script
-./run_test3.sh — тест только с --script
-./run_test4.sh — тест с VFS и стартовым скриптом
-./run_test5.sh — тест команд ls, cd, echo, du
-./run_test6.sh — тест команды rmdir
+tests/run_test1.sh — тест с параметром --vfs
+tests/run_test2.sh — тест с --vfs и --script
+tests/run_test3.sh — тест только с --script
+tests/run_test4.sh — тест с VFS и стартовым скриптом
+tests/run_test5.sh — тест команд ls, cd, echo, du
+tests/run_test6.sh — тест команды rmdir
 
 Примеры использования
 
@@ -103,6 +103,6 @@ python3 tests/create_test_vfs.py
 
 Тестирование
 
-Для демонстрации работы используются скрипты run_test1.sh ... run_test5.sh
+Для демонстрации работы используются скрипты tests/run_test1.sh ... tests/run_test6.sh
 и стартовые скрипты в папке scripts.
 Юнит-тесты будут добавлены позже.

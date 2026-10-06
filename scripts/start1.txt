@@ -1,6 +1,6 @@
-# Стартовый скрипт для тестирования
-ls -la
-cd $HOME
+# Тест базовых команд
+ls /
+cd /home/user
+ls
 unknown_command
-ls /tmp
 exit
